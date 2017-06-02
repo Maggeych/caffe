@@ -328,6 +328,48 @@ message LocLossParameter {
 	required double threshold = 1;
 }
 
+// added by Markus Frey
+// Input image paths are read from <source> and augmented using an affine
+// transformation matrix with given variance in its entries everytime the image
+// is read.
+// TODO: Maybe use an external proto to define the images/augmentations/crop.
+// This second proto could be used in the running inspection to do the same crop
+// when live.
+message InspectionImageDataParameter {
+  optional string source = 1 [default = "train_images.txt"];
+  optional uint32 batch_size = 2 [default = 1];
+  optional string root_folder = 11 [default = ""];
+  optional bool is_color = 12 [default = true];
+  optional bool shuffle = 13 [default = true];
+  optional uint32 new_height = 14 [default = 0];
+  optional uint32 new_width = 15 [default = 0];
+
+  // Set the ROI in the input images.
+  optional uint32 crop_x1 = 16 [default = 0];
+  optional uint32 crop_y1 = 17 [default = 0];
+  optional uint32 crop_x2 = 18 [default = 0];
+  optional uint32 crop_y2 = 19 [default = 0];
+
+  // Define the variance in the rotation (in degree). This yields rotation
+  // angles in the range [-var_rotation, +var_rotation].
+  optional double var_rotation = 3 [default = 10.0];
+
+  // Define the variance in the entries of the affine transformation matrix M 
+  // used to augment the input images:
+  //     | fx  sx  tx |
+  // M = | sy  fy  ty |
+  //     | 0   0   1  |
+  optional double var_fx = 4 [default = 1.0];  // Focal length x.
+  optional double var_fy = 5 [default = 1.0];  // Focal length y. 
+  optional double var_sx = 6 [default = 1.0];  // Shear x.
+  optional double var_sy = 7 [default = 1.0];  // Shear y.
+  optional double var_tx = 8 [default = 1.0];  // Translation x.
+  optional double var_ty = 9 [default = 1.0];  // Translation y.
+
+  // Define the variance in image brightness.
+  optional uint32 var_brightness = 10 [default = 0];
+}
+
 // Specifies training parameters (multipliers on global learning constants,
 // and the name and other settings used for weight sharing).
 message ParamSpec {
@@ -356,7 +398,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 153 (last added: imagecrop_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -459,6 +501,9 @@ message LayerParameter {
   optional STLossParameter st_loss_param = 149;
   optional PowerFileParameter power_file_param = 150;
   optional LocLossParameter loc_loss_param = 151;
+
+  // added by Markus Frey
+  optional InspectionImageDataParameter inspection_param = 152;
 }
 
 // Message that stores parameters used to apply transformation
