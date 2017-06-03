@@ -36,8 +36,12 @@ class AugmentedCropWarp {
     this->targetDim = cv::Size(p.new_width(), p.new_height());
     if (this->targetDim.width == 0.0f) this->targetDim.width = roiDim.x;
     if (this->targetDim.height == 0.0f) this->targetDim.height = roiDim.y;
-    this->scale = cv::Point2f(this->targetDim.width / roiDim.x,
-        this->targetDim.height / roiDim.y);
+    this->scale = cv::Point2f(
+        // roiDim.x / this->targetDim.width,
+        // roiDim.y / this->targetDim.height
+        this->targetDim.width / roiDim.x,
+        this->targetDim.height / roiDim.y
+        );
     this->translate = (tl + br) * 0.5f;
 
     // Create the distributions with variances according to the parameters.
@@ -73,6 +77,12 @@ class AugmentedCropWarp {
       this->rng_rotation = boost::random::uniform_real_distribution<>(
           -p.var_rotation(), p.var_rotation()
           );
+  }
+
+  cv::Mat warpAugmented(const cv::Mat& in) {
+    cv::Mat out;
+    cv::warpAffine(in, out, this->sample(), this->targetDim);
+    return out;
   }
 
   cv::Mat sample() {
@@ -112,10 +122,6 @@ class AugmentedCropWarp {
     // First scale and move ROI center to origin (P), shear (S),
     // then rotate (R) and finally move the top left ROI corner to (0,0).
     return (B * R * S * P)(cv::Rect(0, 0, 3, 2));
-  }
-
-  cv::Size getTargetDim() const {
-    return this->targetDim;
   }
 
  protected:
@@ -280,21 +286,16 @@ void InspectionImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     CHECK_GT(image_cnt, current_image);
     cv::Mat cv_img = ReadImageToCVMat(
-        iidp.root_folder() + image_paths[current_image],
-        iidp.new_height(), iidp.new_width(), iidp.is_color());
+        iidp.root_folder() + image_paths[current_image], 0, 0, iidp.is_color());
     CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
     read_time += timer.MicroSeconds();
     timer.Start();
-    // Do augmented cropping.
-    cv::Mat crop;
-    cv::Mat w = warp.sample();
-    cv::warpAffine(cv_img, crop, w, warp.getTargetDim());
-    // cv::imshow("warped", crop);
-    // cv::waitKey(0);
     // Apply transformations (mirror, crop...) to the image
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
-    this->data_transformer_->Transform(crop, &(this->transformed_data_));
+    // Do augmented cropping.
+    cv::Mat augmented = warp.warpAugmented(cv_img);
+    this->data_transformer_->Transform(augmented, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
 
     // go to the next iter
