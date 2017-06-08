@@ -82,6 +82,8 @@ class AugmentedCropWarp {
   cv::Mat warpAugmented(const cv::Mat& in) {
     cv::Mat out;
     cv::warpAffine(in, out, this->sample(), this->targetDim);
+    // cv::imshow("out", out);
+    // cv::waitKey(0);
     return out;
   }
 
@@ -132,7 +134,7 @@ class AugmentedCropWarp {
   }
   inline float fy() {
     if (use_fy) return this->rng_fy(this->rng_seed) * this->scale.y;
-    else return this->scale.x;
+    else return this->scale.y;
   }
 
   inline cv::Point2f s() { return cv::Point2f(sx(), sy()); }
