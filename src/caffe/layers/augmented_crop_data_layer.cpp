@@ -16,7 +16,7 @@
 
 #include "caffe/data_transformer.hpp"
 #include "caffe/layers/base_data_layer.hpp"
-#include "caffe/layers/inspection_image_data_layer.hpp"
+#include "caffe/layers/augmented_crop_data_layer.hpp"
 #include "caffe/util/benchmark.hpp"
 #include "caffe/util/io.hpp"
 #include "caffe/util/math_functions.hpp"
@@ -26,14 +26,14 @@ namespace caffe {
 
 class AugmentedCropWarp {
  public:
-  AugmentedCropWarp(const InspectionImageDataParameter& p) : rng_seed(dev) {
+  AugmentedCropWarp(const AugmentedCropDataParameter& p) : rng_seed(dev) {
     // Get unaugmented scaling and translation so the ROI defined in the
     // parameters has target size and is centered in the origin.
     cv::Point2f tl(p.crop_x1(), p.crop_y1());  // Top left.
     cv::Point2f br(p.crop_x2(), p.crop_y2());  // Bottom right.
 
     cv::Point2f roiDim = br - tl;
-    this->targetDim = cv::Size(p.new_width(), p.new_height());
+    this->targetDim = cv::Size(p.out_width(), p.out_height());
     if (this->targetDim.width == 0.0f) this->targetDim.width = roiDim.x;
     if (this->targetDim.height == 0.0f) this->targetDim.height = roiDim.y;
     this->scale = cv::Point2f(
@@ -82,8 +82,6 @@ class AugmentedCropWarp {
   cv::Mat warpAugmented(const cv::Mat& in) {
     cv::Mat out;
     cv::warpAffine(in, out, this->sample(), this->targetDim);
-    // cv::imshow("out", out);
-    // cv::waitKey(0);
     return out;
   }
 
@@ -91,8 +89,9 @@ class AugmentedCropWarp {
     // Get augmented scaling to the target size.
     cv::Point2f f = this->f();
     // Translation variance is defined in the unscaled pixel distance space.
-    // In the homogeneous matrix transformation it is applied after the scaling,
-    // so the augmented translation needs to also be scaled accordingly.
+    // In the homogeneous matrix transformation it is applied after the
+    // scaling, so the augmented translation needs to also be scaled
+    // accordingly.
     cv::Point2f t = this->t();
     t.x *= f.x; t.y *= f.y;
     // The final augmented homogeneous scale and translation matrix.
@@ -134,7 +133,7 @@ class AugmentedCropWarp {
   }
   inline float fy() {
     if (use_fy) return this->rng_fy(this->rng_seed) * this->scale.y;
-    else return this->scale.y;
+    else return this->scale.x;
   }
 
   inline cv::Point2f s() { return cv::Point2f(sx(), sy()); }
@@ -186,23 +185,24 @@ class AugmentedCropWarp {
 };
 
 template <typename Dtype>
-InspectionImageDataLayer<Dtype>::~InspectionImageDataLayer<Dtype>() {
+AugmentedCropDataLayer<Dtype>::~AugmentedCropDataLayer<Dtype>() {
   this->StopInternalThread();
 }
 
 template <typename Dtype>
-void InspectionImageDataLayer<Dtype>::DataLayerSetUp(
+void AugmentedCropDataLayer<Dtype>::DataLayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   // Get the ImageCrop parameter and retrieve all settings from it.
-  const InspectionImageDataParameter& iidp = this->layer_param_.inspection_param();
+  const AugmentedCropDataParameter& iidp =
+    this->layer_param_.augmented_crop_param();
   CHECK(
-      (iidp.new_width() == 0 && iidp.new_height() == 0) ||
-      (iidp.new_width() > 0 && iidp.new_height() > 0)
+      (iidp.out_width() == 0 && iidp.out_height() == 0) ||
+      (iidp.out_width() > 0 && iidp.out_height() > 0)
       )
-    << "Current implementation requires new_height and new_width to be set at "
+    << "Current implementation requires out_height and out_width to be set at "
     "the same time.";
 
-  const string& source = iidp.source();
+  const string& source = iidp.images();
   LOG(INFO) << "Opening file " << source;
   std::ifstream infile(source.c_str());
   string line;
@@ -229,7 +229,7 @@ void InspectionImageDataLayer<Dtype>::DataLayerSetUp(
   current_image = 0;
   cv::Mat cv_img = ReadImageToCVMat(
       iidp.root_folder() + image_paths[current_image],
-      iidp.new_height(), iidp.new_width(), iidp.is_color());
+      iidp.out_height(), iidp.out_width(), iidp.color());
   CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
   // Use data_transformer to infer the expected blob shape from a cv_image.
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
@@ -249,7 +249,7 @@ void InspectionImageDataLayer<Dtype>::DataLayerSetUp(
 }
 
 template <typename Dtype>
-void InspectionImageDataLayer<Dtype>::ShuffleImages() {
+void AugmentedCropDataLayer<Dtype>::ShuffleImages() {
   caffe::rng_t* prefetch_rng =
       static_cast<caffe::rng_t*>(prefetch_rng_->generator());
   shuffle(image_paths.begin(), image_paths.end(), prefetch_rng);
@@ -257,7 +257,7 @@ void InspectionImageDataLayer<Dtype>::ShuffleImages() {
 
 // This function is called on prefetch thread
 template <typename Dtype>
-void InspectionImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+void AugmentedCropDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer batch_timer;
   batch_timer.Start();
   double read_time = 0;
@@ -265,12 +265,15 @@ void InspectionImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer timer;
   CHECK(batch->data_.count());
   CHECK(this->transformed_data_.count());
-  const InspectionImageDataParameter& iidp = this->layer_param_.inspection_param();
+  const AugmentedCropDataParameter& iidp =
+    this->layer_param_.augmented_crop_param();
 
   // Reshape according to the first image of each batch
   // on single input batches allows for inputs of varying dimension.
-  cv::Mat cv_img = ReadImageToCVMat(iidp.root_folder() + image_paths[current_image],
-      iidp.new_height(), iidp.new_width(), iidp.is_color());
+  cv::Mat cv_img = ReadImageToCVMat(
+      iidp.root_folder() + image_paths[current_image],
+      iidp.out_height(), iidp.out_width(), iidp.color()
+      );
   CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
   // Use data_transformer to infer the expected blob shape from a cv_img.
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
@@ -288,7 +291,7 @@ void InspectionImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     CHECK_GT(image_cnt, current_image);
     cv::Mat cv_img = ReadImageToCVMat(
-        iidp.root_folder() + image_paths[current_image], 0, 0, iidp.is_color());
+        iidp.root_folder() + image_paths[current_image], 0, 0, iidp.color());
     CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
     read_time += timer.MicroSeconds();
     timer.Start();
@@ -317,8 +320,8 @@ void InspectionImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   DLOG(INFO) << "Transform time: " << trans_time / 1000 << " ms.";
 }
 
-INSTANTIATE_CLASS(InspectionImageDataLayer);
-REGISTER_LAYER_CLASS(InspectionImageData);
+INSTANTIATE_CLASS(AugmentedCropDataLayer);
+REGISTER_LAYER_CLASS(AugmentedCropData);
 
 }  // namespace caffe
 #endif  // USE_OPENCV

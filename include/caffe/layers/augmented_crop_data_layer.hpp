@@ -1,5 +1,5 @@
-#ifndef CAFFE_INSPECTION_IMAGE_DATA_LAYER_HPP_
-#define CAFFE_INSPECTION_IMAGE_DATA_LAYER_HPP_
+#ifndef CAFFE_AUGMENTED_CROP_DATA_LAYER_HPP_
+#define CAFFE_AUGMENTED_CROP_DATA_LAYER_HPP_
 
 #include <string>
 #include <utility>
@@ -20,11 +20,11 @@ namespace caffe {
  * TODO(dox): thorough documentation for Forward and proto params.
  */
 template <typename Dtype>
-class InspectionImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
+class AugmentedCropDataLayer : public BasePrefetchingDataLayer<Dtype> {
  public:
-  explicit InspectionImageDataLayer(const LayerParameter& param)
+  explicit AugmentedCropDataLayer(const LayerParameter& param)
       : BasePrefetchingDataLayer<Dtype>(param) {}
-  virtual ~InspectionImageDataLayer();
+  virtual ~AugmentedCropDataLayer();
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
@@ -44,4 +44,4 @@ class InspectionImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
 }  // namespace caffe
 
-#endif  // CAFFE_INSPECTION_IMAGE_DATA_LAYER_HPP_
+#endif  // CAFFE_AUGMENTED_CROP_DATA_LAYER_HPP_

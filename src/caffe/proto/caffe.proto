@@ -329,20 +329,20 @@ message LocLossParameter {
 }
 
 // added by Markus Frey
-// Input image paths are read from <source> and augmented using an affine
+// Input image paths are read from <images> and augmented using an affine
 // transformation matrix with given variance in its entries everytime the image
 // is read.
 // TODO: Maybe use an external proto to define the images/augmentations/crop.
 // This second proto could be used in the running inspection to do the same crop
 // when live.
-message InspectionImageDataParameter {
-  optional string source = 1 [default = "train_images.txt"];
+message AugmentedCropDataParameter {
+  optional string images = 1 [default = "train_images.txt"];
   optional uint32 batch_size = 2 [default = 1];
   optional string root_folder = 11 [default = ""];
-  optional bool is_color = 12 [default = true];
+  optional bool color = 12 [default = true];
   optional bool shuffle = 13 [default = true];
-  optional uint32 new_height = 14 [default = 0];
-  optional uint32 new_width = 15 [default = 0];
+  optional uint32 out_height = 14 [default = 0];
+  optional uint32 out_width = 15 [default = 0];
 
   // Set the ROI in the input images.
   optional uint32 crop_x1 = 16 [default = 0];
@@ -352,17 +352,17 @@ message InspectionImageDataParameter {
 
   // Define the variance in the rotation (in degree). This yields rotation
   // angles in the range [-var_rotation, +var_rotation].
-  optional double var_rotation = 3 [default = 10.0];
+  optional double var_rotation = 3 [default = 0.0];
 
   // Define the variance in the entries of the affine transformation matrix M 
   // used to augment the input images:
   //     | fx  sx  tx |
   // M = | sy  fy  ty |
   //     | 0   0   1  |
-  optional double var_fx = 4 [default = 1.0];  // Focal length x.
-  optional double var_fy = 5 [default = 1.0];  // Focal length y. 
-  optional double var_sx = 6 [default = 1.0];  // Shear x.
-  optional double var_sy = 7 [default = 1.0];  // Shear y.
+  optional double var_fx = 4 [default = 0.0];  // Focal length x.
+  optional double var_fy = 5 [default = 0.0];  // Focal length y. 
+  optional double var_sx = 6 [default = 0.0];  // Shear x.
+  optional double var_sy = 7 [default = 0.0];  // Shear y.
   optional double var_tx = 8 [default = 1.0];  // Translation x.
   optional double var_ty = 9 [default = 1.0];  // Translation y.
 
@@ -503,7 +503,7 @@ message LayerParameter {
   optional LocLossParameter loc_loss_param = 151;
 
   // added by Markus Frey
-  optional InspectionImageDataParameter inspection_param = 152;
+  optional AugmentedCropDataParameter augmented_crop_param = 152;
 }
 
 // Message that stores parameters used to apply transformation
