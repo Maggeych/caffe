@@ -35,7 +35,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		to_compute_dU_ = true;
 	}
 
-	std::cout<<prefix<<"Getting output_H_ and output_W_"<<std::endl;
+	// std::cout<<prefix<<"Getting output_H_ and output_W_"<<std::endl;
 
 	output_H_ = bottom[0]->shape(2);
 	if(this->layer_param_.st_param().has_output_h()) {
@@ -46,16 +46,16 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		output_W_ = this->layer_param_.st_param().output_w();
 	}
 
-	std::cout<<prefix<<"output_H_ = "<<output_H_<<", output_W_ = "<<output_W_<<std::endl;
+	// std::cout<<prefix<<"output_H_ = "<<output_H_<<", output_W_ = "<<output_W_<<std::endl;
 
-	std::cout<<prefix<<"Getting pre-defined parameters"<<std::endl;
+	// std::cout<<prefix<<"Getting pre-defined parameters"<<std::endl;
 
 	is_pre_defined_theta[0] = false;
 	if(this->layer_param_.st_param().has_theta_1_1()) {
 		is_pre_defined_theta[0] = true;
 		++ pre_defined_count;
 		pre_defined_theta[0] = this->layer_param_.st_param().theta_1_1();
-		std::cout<<prefix<<"Getting pre-defined theta[1][1] = "<<pre_defined_theta[0]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[1][1] = "<<pre_defined_theta[0]<<std::endl;
 	}
 
 	is_pre_defined_theta[1] = false;
@@ -63,7 +63,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		is_pre_defined_theta[1] = true;
 		++ pre_defined_count;
 		pre_defined_theta[1] = this->layer_param_.st_param().theta_1_2();
-		std::cout<<prefix<<"Getting pre-defined theta[1][2] = "<<pre_defined_theta[1]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[1][2] = "<<pre_defined_theta[1]<<std::endl;
 	}
 
 	is_pre_defined_theta[2] = false;
@@ -71,7 +71,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		is_pre_defined_theta[2] = true;
 		++ pre_defined_count;
 		pre_defined_theta[2] = this->layer_param_.st_param().theta_1_3();
-		std::cout<<prefix<<"Getting pre-defined theta[1][3] = "<<pre_defined_theta[2]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[1][3] = "<<pre_defined_theta[2]<<std::endl;
 	}
 
 	is_pre_defined_theta[3] = false;
@@ -79,7 +79,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		is_pre_defined_theta[3] = true;
 		++ pre_defined_count;
 		pre_defined_theta[3] = this->layer_param_.st_param().theta_2_1();
-		std::cout<<prefix<<"Getting pre-defined theta[2][1] = "<<pre_defined_theta[3]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[2][1] = "<<pre_defined_theta[3]<<std::endl;
 	}
 
 	is_pre_defined_theta[4] = false;
@@ -87,7 +87,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		is_pre_defined_theta[4] = true;
 		++ pre_defined_count;
 		pre_defined_theta[4] = this->layer_param_.st_param().theta_2_2();
-		std::cout<<prefix<<"Getting pre-defined theta[2][2] = "<<pre_defined_theta[4]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[2][2] = "<<pre_defined_theta[4]<<std::endl;
 	}
 
 	is_pre_defined_theta[5] = false;
@@ -95,7 +95,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 		is_pre_defined_theta[5] = true;
 		++ pre_defined_count;
 		pre_defined_theta[5] = this->layer_param_.st_param().theta_2_3();
-		std::cout<<prefix<<"Getting pre-defined theta[2][3] = "<<pre_defined_theta[5]<<std::endl;
+		// std::cout<<prefix<<"Getting pre-defined theta[2][3] = "<<pre_defined_theta[5]<<std::endl;
 	}
 
 	// check the validation for the parameter theta
@@ -105,7 +105,7 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 			"U should be the same" << std::endl;
 
 	// initialize the matrix for output grid
-	std::cout<<prefix<<"Initializing the matrix for output grid"<<std::endl;
+	// std::cout<<prefix<<"Initializing the matrix for output grid"<<std::endl;
 
 	vector<int> shape_output(2);
 	shape_output[0] = output_H_ * output_W_; shape_output[1] = 3;
@@ -119,13 +119,13 @@ void SpatialTransformerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bott
 	}
 
 	// initialize the matrix for input grid
-	std::cout<<prefix<<"Initializing the matrix for input grid"<<std::endl;
+	// std::cout<<prefix<<"Initializing the matrix for input grid"<<std::endl;
 
 	vector<int> shape_input(3);
 	shape_input[0] = bottom[1]->shape(0); shape_input[1] = output_H_ * output_W_; shape_input[2] = 2;
 	input_grid.Reshape(shape_input);
 
-	std::cout<<prefix<<"Initialization finished."<<std::endl;
+	// std::cout<<prefix<<"Initialization finished."<<std::endl;
 }
 
 template <typename Dtype>
