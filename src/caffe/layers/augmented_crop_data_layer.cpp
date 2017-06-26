@@ -82,6 +82,10 @@ class AugmentedCropWarp {
   cv::Mat warpAugmented(const cv::Mat& in) {
     cv::Mat out;
     cv::warpAffine(in, out, this->sample(), this->targetDim);
+
+    //cv::imwrite("warped.bmp", out);
+    cv::imshow("warped", out);
+    cv::waitKey(1);
     return out;
   }
 
@@ -133,7 +137,7 @@ class AugmentedCropWarp {
   }
   inline float fy() {
     if (use_fy) return this->rng_fy(this->rng_seed) * this->scale.y;
-    else return this->scale.x;
+    else return this->scale.y;
   }
 
   inline cv::Point2f s() { return cv::Point2f(sx(), sy()); }
@@ -301,6 +305,7 @@ void AugmentedCropDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // Do augmented cropping.
     cv::Mat augmented = warp.warpAugmented(cv_img);
     this->data_transformer_->Transform(augmented, &(this->transformed_data_));
+
     trans_time += timer.MicroSeconds();
 
     // go to the next iter
