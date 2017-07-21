@@ -128,8 +128,8 @@ void UnpoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       for (int c = 0; c < channels_; ++c) {
         for (int ph = 0; ph < height_; ++ph) {
           for (int pw = 0; pw < width_; ++pw) {
-            int uph = max(0,min(ph * stride_h_ - pad_h_, unpooled_height_-1));
-            int upw = max(0,min(pw * stride_w_ - pad_w_, unpooled_width_-1));
+            int uph = max(0,min(kernel_h_ * ph * stride_h_ - pad_h_, unpooled_height_-1));
+            int upw = max(0,min(kernel_w_ * pw * stride_w_ - pad_w_, unpooled_width_-1));
       const int index = ph * width_ + pw;
             const int unpooled_index = uph * unpooled_width_ + upw;
             if (use_bottom_mask) {
@@ -236,8 +236,8 @@ void UnpoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       for (int c = 0; c < channels_; ++c) {
         for (int ph = 0; ph < height_; ++ph) {
           for (int pw = 0; pw < width_; ++pw) {
-            int uph = max(0,min(ph * stride_h_ - pad_h_, unpooled_height_-1));
-            int upw = max(0,min(pw * stride_w_ - pad_w_, unpooled_width_-1));
+            int uph = max(0,min(kernel_h_ * ph * stride_h_ - pad_h_, unpooled_height_-1));
+            int upw = max(0,min(kernel_w_ * pw * stride_w_ - pad_w_, unpooled_width_-1));
             const int index = ph * width_ + pw;
             const int unpooled_index = uph * unpooled_width_ + upw;
             if (use_bottom_mask) {

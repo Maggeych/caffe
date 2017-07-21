@@ -23,8 +23,8 @@ __global__ void MaxUnpoolForward(const int nthreads, const Dtype* bottom_data,
     int c = (index / width / height) % channels;
     int n = index / width / height / channels;
 
-    int uph = max(0, min(ph * stride_h - pad_h, unpooled_height - 1));
-    int upw = max(0, min(pw * stride_w - pad_w, unpooled_width - 1));
+    int uph = max(0, min(kernel_h * ph * stride_h - pad_h, unpooled_height - 1));
+    int upw = max(0, min(kernel_w * pw * stride_w - pad_w, unpooled_width - 1));
     int unpooled_index = uph * unpooled_width + upw;
 
     top_data += (n * channels + c) * unpooled_height * unpooled_width;
@@ -165,8 +165,8 @@ __global__ void MaxUnpoolBackward(const int nthreads, const Dtype* top_diff,
     int c = (index / width / height) % channels;
     int n = index / width / height / channels;
 
-    int uph = max(0, min(ph * stride_h - pad_h, unpooled_height - 1));
-    int upw = max(0, min(pw * stride_w - pad_w, unpooled_width - 1));
+    int uph = max(0, min(kernel_h * ph * stride_h - pad_h, unpooled_height - 1));
+    int upw = max(0, min(kernel_w * pw * stride_w - pad_w, unpooled_width - 1));
     int unpooled_index = uph * unpooled_width + upw;
 
     top_diff += (n * channels + c) * unpooled_height * unpooled_width;
