@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <opencv2/core/core.hpp>
+
 #include "caffe/blob.hpp"
 #include "caffe/data_transformer.hpp"
 #include "caffe/internal_thread.hpp"
@@ -38,6 +40,7 @@ class AugmentedCropDataLayer : public BasePrefetchingDataLayer<Dtype> {
   virtual void load_batch(Batch<Dtype>* batch);
 
   vector<std::string> image_paths;
+  vector<cv::Mat> images;
   int current_image;
 };
 

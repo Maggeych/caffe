@@ -84,8 +84,8 @@ class AugmentedCropWarp {
     cv::warpAffine(in, out, this->sample(), this->targetDim);
 
     //cv::imwrite("warped.bmp", out);
-    cv::imshow("warped", out);
-    cv::waitKey(1);
+    // cv::imshow("warped", out);
+    // cv::waitKey(1);
     return out;
   }
 
@@ -212,6 +212,9 @@ void AugmentedCropDataLayer<Dtype>::DataLayerSetUp(
   string line;
   while (std::getline(infile, line)) {
     image_paths.push_back(line);
+      cv::Mat img = ReadImageToCVMat(iidp.root_folder() + line, 0, 0, iidp.color());
+      CHECK(img.data) << "Could not load " << line;
+      images.push_back(img);
   }
 
   CHECK(!image_paths.empty()) << "File is empty";
@@ -256,7 +259,7 @@ template <typename Dtype>
 void AugmentedCropDataLayer<Dtype>::ShuffleImages() {
   caffe::rng_t* prefetch_rng =
       static_cast<caffe::rng_t*>(prefetch_rng_->generator());
-  shuffle(image_paths.begin(), image_paths.end(), prefetch_rng);
+  shuffle(images.begin(), images.end(), prefetch_rng);
 }
 
 // This function is called on prefetch thread
@@ -274,13 +277,18 @@ void AugmentedCropDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   // Reshape according to the first image of each batch
   // on single input batches allows for inputs of varying dimension.
-  cv::Mat cv_img = ReadImageToCVMat(
-      iidp.root_folder() + image_paths[current_image],
-      iidp.out_height(), iidp.out_width(), iidp.color()
-      );
-  CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
+  // cv::Mat cv_img = ReadImageToCVMat(
+  //     iidp.root_folder() + image_paths[current_image],
+  //     iidp.out_height(), iidp.out_width(), iidp.color()
+  //     );
+  // CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
   // Use data_transformer to infer the expected blob shape from a cv_img.
-  vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
+  // vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
+  vector<int> top_shape(4);
+  top_shape[0] = 1;
+  top_shape[1] = iidp.color() ? 3 : 1;
+  top_shape[2] = iidp.out_height();
+  top_shape[3] = iidp.out_width();
   this->transformed_data_.Reshape(top_shape);
   // Reshape batch according to the batch_size.
   top_shape[0] = iidp.batch_size();
@@ -289,14 +297,12 @@ void AugmentedCropDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   Dtype* prefetch_data = batch->data_.mutable_cpu_data();
 
   AugmentedCropWarp warp(iidp);
-  const int image_cnt = image_paths.size();
+  const int image_cnt = images.size();
   for (int item_id = 0; item_id < iidp.batch_size(); ++item_id) {
     // get a blob
     timer.Start();
     CHECK_GT(image_cnt, current_image);
-    cv::Mat cv_img = ReadImageToCVMat(
-        iidp.root_folder() + image_paths[current_image], 0, 0, iidp.color());
-    CHECK(cv_img.data) << "Could not load " << image_paths[current_image];
+    cv::Mat cv_img = images[current_image];
     read_time += timer.MicroSeconds();
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
